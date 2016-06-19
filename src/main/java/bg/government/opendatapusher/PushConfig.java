@@ -1,5 +1,7 @@
 package bg.government.opendatapusher;
 
+import java.util.List;
+
 public class PushConfig {
 
     private String title;
@@ -46,4 +48,14 @@ public class PushConfig {
         this.title = title;
     }
     
+    public static class ConfigRoot {
+        private List<PushConfig> configs;
+
+        public List<PushConfig> getConfigs() {
+            return configs;
+        }
+        public void setConfigs(List<PushConfig> configs) {
+            this.configs = configs;
+        }
+    }
 }

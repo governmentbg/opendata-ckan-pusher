@@ -2,3 +2,5 @@
 .project
 .settings/
 target/
+*.csv
+src/test/resources/~$test.xlsx

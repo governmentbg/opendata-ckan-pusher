@@ -1,5 +1,5 @@
 package bg.government.opendatapusher;
 
 public enum SourceType {
-    XLS, SQL, RAW
+    XLS, SQL, RAW //TODO ODS
 }
