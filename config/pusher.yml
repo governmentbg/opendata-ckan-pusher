@@ -1,5 +1,7 @@
+apiKey: xxxxx
 configs:
     - title: test-xls
       sourceType: XLS
       path: /tmp/source.xlsx
       days: 1
+      datasetKey: test

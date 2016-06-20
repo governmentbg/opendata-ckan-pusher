@@ -48,24 +48,26 @@ public class Pusher implements Runnable {
     private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     
     private PushConfig config;
-
+    private String apiKey;
+    
     public static void main(String[] args) throws Exception {
-        List<PushConfig> configs = parseConfig(args[0]);
+        ConfigRoot configRoot = parseConfig(args[0]);
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-        for (PushConfig config : configs) {
-            executor.scheduleAtFixedRate(new Pusher(config), 0, 12, TimeUnit.HOURS);
+        for (PushConfig config : configRoot.getConfigs()) {
+            executor.scheduleAtFixedRate(new Pusher(config, configRoot.getApiKey()), 0, 12, TimeUnit.HOURS);
         }
     }
 
-    public static List<PushConfig> parseConfig(String path) throws IOException, JsonParseException,
+    public static ConfigRoot parseConfig(String path) throws IOException, JsonParseException,
             JsonMappingException {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-        List<PushConfig> configs = mapper.readValue(new File(path), ConfigRoot.class).getConfigs();
-        return configs;
+        ConfigRoot config = mapper.readValue(new File(path), ConfigRoot.class);
+        return config;
     }
 
-    public Pusher(PushConfig config) {
+    public Pusher(PushConfig config, String apiKey) {
         this.config = config;
+        this.apiKey = apiKey;
     }
 
     public void run() {
