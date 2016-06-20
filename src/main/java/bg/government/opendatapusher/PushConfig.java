@@ -10,7 +10,7 @@ public class PushConfig {
     private String query;
     private String connectionString;
     private int days;
-    private String datasetKey;
+    private String resourceKey;
     
     public SourceType getSourceType() {
         return sourceType;
@@ -49,17 +49,17 @@ public class PushConfig {
         this.title = title;
     }
     
-    public String getDatasetKey() {
-        return datasetKey;
+    public String getResourceKey() {
+        return resourceKey;
     }
-    public void setDatasetKey(String datasetKey) {
-        this.datasetKey = datasetKey;
+    public void setResourceKey(String resourceKey) {
+        this.resourceKey = resourceKey;
     }
-
 
     public static class ConfigRoot {
         private List<PushConfig> configs;
         private String apiKey;
+        private String rootUrl;
 
         public List<PushConfig> getConfigs() {
             return configs;
@@ -72,6 +72,12 @@ public class PushConfig {
         }
         public void setApiKey(String apiKey) {
             this.apiKey = apiKey;
+        }
+        public String getRootUrl() {
+            return rootUrl;
+        }
+        public void setRootUrl(String rootUrl) {
+            this.rootUrl = rootUrl;
         }
     }
 }

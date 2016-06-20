@@ -1,7 +1,8 @@
 apiKey: xxxxx
+rootUrl: https://opendata.government.bg
 configs:
     - title: test-xls
       sourceType: XLS
-      path: /tmp/source.xlsx
+      path: /tmp/source.xls
       days: 1
       datasetKey: test

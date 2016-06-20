@@ -7,11 +7,12 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -20,14 +21,20 @@ import java.util.logging.Logger;
 
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.hssf.util.HSSFCellUtil;
 import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
 
 import bg.government.opendatapusher.PushConfig.ConfigRoot;
 
@@ -45,16 +52,21 @@ import com.google.common.io.Files;
 public class Pusher implements Runnable {
     private static final Logger logger = Logger.getLogger("Pusher");
     
-    private DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    
+    private static final String UPDATE_OPERATION = "/api/3/action/resource_update";
     
     private PushConfig config;
     private String apiKey;
+    private String rootUrl;
+    
+    private RestTemplate restTemplate = new RestTemplate();
     
     public static void main(String[] args) throws Exception {
         ConfigRoot configRoot = parseConfig(args[0]);
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
         for (PushConfig config : configRoot.getConfigs()) {
-            executor.scheduleAtFixedRate(new Pusher(config, configRoot.getApiKey()), 0, 12, TimeUnit.HOURS);
+            executor.scheduleAtFixedRate(new Pusher(config, configRoot.getApiKey(), configRoot.getRootUrl()), 0, 12, TimeUnit.HOURS);
         }
     }
 
@@ -65,9 +77,10 @@ public class Pusher implements Runnable {
         return config;
     }
 
-    public Pusher(PushConfig config, String apiKey) {
+    public Pusher(PushConfig config, String apiKey, String rootUrl) {
         this.config = config;
         this.apiKey = apiKey;
+        this.rootUrl = rootUrl;
     }
 
     public void run() {
@@ -89,11 +102,31 @@ public class Pusher implements Runnable {
                     resultPath = config.getPath();
                     break;
                 }
+                
+                pushDataset(resultPath);
             }
-
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Failed to create file", e);
         }
+    }
+
+    private void pushDataset(String csvPath) throws IOException {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", apiKey);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        
+        HttpEntity<?> request = new  HttpEntity<>(headers);
+        MultiValueMap<String, Object> map = new LinkedMultiValueMap<String, Object>();
+        map.add("resource_id", config.getResourceKey());
+        map.add("upload", new FileSystemResource(csvPath));
+        
+        try {
+            String result = restTemplate.exchange(new URI(rootUrl + UPDATE_OPERATION), HttpMethod.POST, request, String.class).getBody();
+            logger.info("Result: " + result);
+        } catch (RestClientException | URISyntaxException e) {
+            throw new IOException(e);
+        }
+        
     }
 
     private File getOrCreateFile() throws IOException {
