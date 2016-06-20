@@ -33,6 +33,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -115,16 +116,22 @@ public class Pusher implements Runnable {
         headers.set("Authorization", apiKey);
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         
-        HttpEntity<?> request = new  HttpEntity<>(headers);
         MultiValueMap<String, Object> map = new LinkedMultiValueMap<String, Object>();
-        map.add("resource_id", config.getResourceKey());
+        map.add("id", config.getResourceKey());
         map.add("upload", new FileSystemResource(csvPath));
         
+        HttpEntity<?> request = new  HttpEntity<>(map, headers);
+        
         try {
-            String result = restTemplate.exchange(new URI(rootUrl + UPDATE_OPERATION), HttpMethod.POST, request, String.class).getBody();
+            String url = rootUrl + UPDATE_OPERATION;
+            String result = restTemplate.exchange(new URI(url), HttpMethod.POST, request, String.class).getBody();
             logger.info("Result: " + result);
-        } catch (RestClientException | URISyntaxException e) {
+        } catch (HttpServerErrorException e) {
+            logger.log(Level.SEVERE, e.getResponseBodyAsString(), e);
+        } catch (RestClientException e) {
             throw new IOException(e);
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(e);
         }
         
     }
