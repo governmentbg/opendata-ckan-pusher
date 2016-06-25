@@ -68,7 +68,12 @@ public class Pusher implements Runnable {
     private RestTemplate restTemplate = new RestTemplate();
     
     public static void main(String[] args) throws Exception {
-        String path = args.length > 0 ? args[0] : Pusher.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath() + "/pusher.yml";
+        String startingPath = Pusher.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+        startingPath = startingPath.replace("\\pusher.exe", ""); //cleanup for starting from within an exe file
+        String path = args.length > 0 ? args[0] : startingPath + "/pusher.yml";
+        if (!new File(path).exists()) {
+            throw new FileNotFoundException(path);
+        }
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
         executor.scheduleAtFixedRate(new Pusher(path), 0, 5, TimeUnit.MINUTES);
     }
