@@ -38,7 +38,7 @@ public class PusherTest {
     private String convert(Path path) throws IOException {
         PushConfig conf = new PushConfig();
         conf.setPath(path.toAbsolutePath().toString());
-        Pusher pusher = new Pusher(conf, "", "");
+        Pusher pusher = new Pusher("");
         String resultPath = pusher.xlsToCsv(conf.getPath());
         return resultPath;
     }

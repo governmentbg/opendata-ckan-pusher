@@ -56,6 +56,10 @@ public class Pusher implements Runnable {
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     
     private static final String UPDATE_OPERATION = "/api/3/action/resource_update";
+
+    private static final String DEFAULT_API_KEY = "xxxxxx";
+    
+    private String path;
     
     private PushConfig config;
     private String apiKey;
@@ -64,11 +68,9 @@ public class Pusher implements Runnable {
     private RestTemplate restTemplate = new RestTemplate();
     
     public static void main(String[] args) throws Exception {
-        ConfigRoot configRoot = parseConfig(args[0]);
+        String path = args.length > 0 ? args[0] : Pusher.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath() + "/pusher.yml";
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
-        for (PushConfig config : configRoot.getConfigs()) {
-            executor.scheduleAtFixedRate(new Pusher(config, configRoot.getApiKey(), configRoot.getRootUrl()), 0, 12, TimeUnit.HOURS);
-        }
+        executor.scheduleAtFixedRate(new Pusher(path), 0, 5, TimeUnit.MINUTES);
     }
 
     public static ConfigRoot parseConfig(String path) throws IOException, JsonParseException,
@@ -78,36 +80,47 @@ public class Pusher implements Runnable {
         return config;
     }
 
-    public Pusher(PushConfig config, String apiKey, String rootUrl) {
-        this.config = config;
-        this.apiKey = apiKey;
-        this.rootUrl = rootUrl;
+    public Pusher(String path) {
+        this.path = path;
     }
 
     public void run() {
         try {
-            File file = getOrCreateFile();
-            long lastRunMillis = Long.parseLong(Files.readFirstLine(file, Charsets.UTF_8));
-            LocalDateTime lastRun = LocalDateTime.ofInstant(Instant.ofEpochMilli(lastRunMillis),
-                    ZoneId.systemDefault());
-            if (lastRun.isBefore(LocalDateTime.now().minusDays(config.getDays()))) {
-                String resultPath = null;
-                switch (config.getSourceType()) {
-                case XLS:
-                    resultPath = xlsToCsv(config.getPath());
-                    break;
-                case SQL:
-                    resultPath = sqlToCsv(config.getConnectionString(), config.getQuery(), config.getPath());
-                    break;
-                case RAW:
-                    resultPath = config.getPath();
-                    break;
-                }
-                
-                pushDataset(resultPath);
+            // re-parsing config regularly as it may change 
+            ConfigRoot configs = parseConfig(path);
+            apiKey = configs.getApiKey();
+            rootUrl = configs.getRootUrl();
+            if (apiKey.equals(DEFAULT_API_KEY)) {
+                return; // not yet configured
             }
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Failed to create file", e);
+            for (PushConfig config : configs.getConfigs()) {
+                try {
+                    File file = getOrCreateFile();
+                    long lastRunMillis = Long.parseLong(Files.readFirstLine(file, Charsets.UTF_8));
+                    LocalDateTime lastRun = LocalDateTime.ofInstant(Instant.ofEpochMilli(lastRunMillis),
+                            ZoneId.systemDefault());
+                    if (lastRun.isBefore(LocalDateTime.now().minusDays(config.getDays()))) {
+                        String resultPath = null;
+                        switch (config.getSourceType()) {
+                        case XLS:
+                            resultPath = xlsToCsv(config.getPath());
+                            break;
+                        case SQL:
+                            resultPath = sqlToCsv(config.getConnectionString(), config.getQuery(), config.getPath());
+                            break;
+                        case RAW:
+                            resultPath = config.getPath();
+                            break;
+                        }
+                        
+                        pushDataset(resultPath);
+                    }
+                } catch (IOException ex) {
+                    logger.log(Level.SEVERE, "Problem with resource " + config.getResourceKey(), ex);
+                }
+            }
+        } catch (IOException ex) {
+            logger.log(Level.SEVERE, "Failed to parse config", ex);
         }
     }
 
