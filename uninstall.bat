@@ -1,1 +1,1 @@
-prunsrv //DS//OpenDataPusher
+commons-daemon\prunsrv //DS//OpenDataPusher

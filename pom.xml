@@ -115,7 +115,7 @@
                                 <copy todir="${installer.dir}/jre1.8.0_91">
                                     <fileset dir="${project.basedir}/jre1.8.0_91" />
                                 </copy>
-                                <copy todir="${installer.dir}">
+                                <copy todir="${installer.dir}/commons-daemon">
                                     <fileset dir="${project.basedir}/commons-daemon" />
                                 </copy>
                                 <copy file="${project.build.directory}/opendata-ckan-pusher.jar" todir="${installer.dir}" />
