@@ -67,15 +67,34 @@ public class Pusher implements Runnable {
     
     private RestTemplate restTemplate = new RestTemplate();
     
+    private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+    
     public static void main(String[] args) throws Exception {
         String startingPath = Pusher.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
-        startingPath = startingPath.replace("\\pusher.exe", ""); //cleanup for starting from within an exe file
-        String path = args.length > 0 ? args[0] : startingPath + "/pusher.yml";
+        startingPath = startingPath.replace("pusher.exe", "").replace("opendata-ckan-pusher.jar", ""); //cleanup for starting as process
+        if (!startingPath.endsWith("/") && !startingPath.endsWith("\\")) {
+            startingPath = startingPath + "/";
+        }
+        String path = args.length > 0 ? args[0] : startingPath + "pusher.yml";
         if (!new File(path).exists()) {
             throw new FileNotFoundException(path);
         }
-        ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+        logger.info("Using config path: " + path);
         executor.scheduleAtFixedRate(new Pusher(path), 0, 5, TimeUnit.MINUTES);
+    }
+    
+    public static void windowsService(String args[]) throws Exception {
+        String cmd = "start";
+        if (args.length > 0) {
+            cmd = args[0];
+        }
+
+        if ("start".equals(cmd)) {
+            Pusher.main(new String[]{});
+        } else {
+            executor.shutdownNow();
+            System.exit(0);
+        }
     }
 
     public static ConfigRoot parseConfig(String path) throws IOException, JsonParseException,
@@ -96,6 +115,7 @@ public class Pusher implements Runnable {
             apiKey = configs.getApiKey();
             rootUrl = configs.getRootUrl();
             if (apiKey.equals(DEFAULT_API_KEY)) {
+                logger.info("Skipping run, configuration is not supplied");
                 return; // not yet configured
             }
             for (PushConfig config : configs.getConfigs()) {

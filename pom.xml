@@ -13,6 +13,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <apache.poi.version>3.14</apache.poi.version>
+        <installer.dir>${project.basedir}/target/installer</installer.dir>
     </properties>
 
     <dependencies>
@@ -92,52 +93,69 @@
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
+                            <finalName>opendata-ckan-pusher</finalName>
+                            <appendAssemblyId>false</appendAssemblyId>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
             <plugin>
-                <groupId>com.akathist.maven.plugins.launch4j</groupId>
-                <artifactId>launch4j-maven-plugin</artifactId>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.7</version>
                 <executions>
                     <execution>
-                        <id>l4j-clui</id>
+                        <id>default-cli</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>launch4j</goal>
+                            <goal>run</goal>
                         </goals>
                         <configuration>
-                            <headerType>console</headerType>
-                            <outfile>target/pusher.exe</outfile>
-                            <jar>${project.build.directory}/${project.build.finalName}-jar-with-dependencies.jar</jar>
-                            <errTitle>pusher</errTitle>
-                            <classPath>
-                                <mainClass>bg.government.opendatapusher.Pusher</mainClass>
-                                <addDependencies>true</addDependencies>
-                                <preCp>anything</preCp>
-                            </classPath>
-                            <jre>
-                                <path>jre1.8.0_40</path>
-                                <minVersion>1.8.0</minVersion>
-                                <opts>
-                                    <opt>-Djava.endorsed.dirs=./endorsed</opt>
-                                </opts>
-                            </jre>
-                            <versionInfo>
-                                <fileVersion>0.0.0.1</fileVersion>
-                                <txtFileVersion>0.0.0.1</txtFileVersion>
-                                <fileDescription>Opendata CKAN pusher</fileDescription>
-                                <productVersion>0.0.0.1</productVersion>
-                                <txtProductVersion>0.0.0.1</txtProductVersion>
-                                <productName>Pusher</productName>
-                                <internalName>pucher</internalName>
-                                <originalFilename>pusher.exe</originalFilename>
-                                <copyright>GPL</copyright>
-                            </versionInfo>
+                            <target>
+                                <copy todir="${installer.dir}/jre1.8.0_40">
+                                    <fileset dir="${project.basedir}/jre1.8.0_40" />
+                                </copy>
+                                <copy todir="${installer.dir}">
+                                    <fileset dir="${project.basedir}/commons-daemon" />
+                                </copy>
+                                <copy file="${project.build.directory}/opendata-ckan-pusher.jar" todir="${installer.dir}" />
+                                <copy file="${project.basedir}/install.bat" todir="${installer.dir}" />
+                                <copy file="${project.basedir}/uninstall.bat" todir="${installer.dir}" />
+                            </target>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
         </plugins>
+        <pluginManagement>
+            <plugins>
+                <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven 
+                    build itself. -->
+                <plugin>
+                    <groupId>org.eclipse.m2e</groupId>
+                    <artifactId>lifecycle-mapping</artifactId>
+                    <version>1.0.0</version>
+                    <configuration>
+                        <lifecycleMappingMetadata>
+                            <pluginExecutions>
+                                <pluginExecution>
+                                    <pluginExecutionFilter>
+                                        <groupId>org.apache.maven.plugins</groupId>
+                                        <artifactId>maven-antrun-plugin</artifactId>
+                                        <versionRange>[1.7,)</versionRange>
+                                        <goals>
+                                            <goal>run</goal>
+                                        </goals>
+                                    </pluginExecutionFilter>
+                                    <action>
+                                        <ignore></ignore>
+                                    </action>
+                                </pluginExecution>
+                            </pluginExecutions>
+                        </lifecycleMappingMetadata>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
     </build>
 </project>
