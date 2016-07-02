@@ -145,7 +145,7 @@ public class Pusher implements Runnable {
                     logger.log(Level.SEVERE, "Problem with resource " + config.getResourceKey(), ex);
                 }
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             logger.log(Level.SEVERE, "Failed to parse config", ex);
         }
     }
