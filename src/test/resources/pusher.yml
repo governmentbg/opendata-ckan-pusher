@@ -4,5 +4,5 @@ configs:
     - title: test-xls
       sourceType: XLS
       path: /tmp/source.xls
-      days: 1
+      days: 2
       resourceKey: 383ab793-5cc6-4eb8-8ceb-b2610921dc6e

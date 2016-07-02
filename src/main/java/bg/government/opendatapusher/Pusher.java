@@ -61,7 +61,6 @@ public class Pusher implements Runnable {
     
     private String path;
     
-    private PushConfig config;
     private String apiKey;
     private String rootUrl;
     
@@ -120,11 +119,13 @@ public class Pusher implements Runnable {
             }
             for (PushConfig config : configs.getConfigs()) {
                 try {
-                    File file = getOrCreateFile();
+                    File file = getOrCreateFile(config.getTitle());
                     long lastRunMillis = Long.parseLong(Files.readFirstLine(file, Charsets.UTF_8));
                     LocalDateTime lastRun = LocalDateTime.ofInstant(Instant.ofEpochMilli(lastRunMillis),
                             ZoneId.systemDefault());
-                    if (lastRun.isBefore(LocalDateTime.now().minusDays(config.getDays()))) {
+                    LocalDateTime lastModified = LocalDateTime.ofInstant(Instant.ofEpochMilli(lastRunMillis),
+                            ZoneId.systemDefault());
+                    if (lastRun.isBefore(LocalDateTime.now().minusDays(config.getDays())) && lastRun.isBefore(lastModified)) {
                         String resultPath = null;
                         switch (config.getSourceType()) {
                         case XLS:
@@ -138,7 +139,7 @@ public class Pusher implements Runnable {
                             break;
                         }
                         
-                        pushDataset(resultPath);
+                        pushDataset(resultPath, config.getResourceKey());
                     }
                 } catch (IOException ex) {
                     logger.log(Level.SEVERE, "Problem with resource " + config.getResourceKey(), ex);
@@ -149,13 +150,13 @@ public class Pusher implements Runnable {
         }
     }
 
-    private void pushDataset(String csvPath) throws IOException {
+    private void pushDataset(String csvPath, String resourceKey) throws IOException {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", apiKey);
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         
         MultiValueMap<String, Object> map = new LinkedMultiValueMap<String, Object>();
-        map.add("id", config.getResourceKey());
+        map.add("id", resourceKey);
         map.add("upload", new FileSystemResource(csvPath));
         
         HttpEntity<?> request = new  HttpEntity<>(map, headers);
@@ -174,8 +175,8 @@ public class Pusher implements Runnable {
         
     }
 
-    private File getOrCreateFile() throws IOException {
-        File file = new File(config.getTitle() + ".last");
+    private File getOrCreateFile(String title) throws IOException {
+        File file = new File(title.replace(" ", "_")  + ".last");
         if (!file.exists()) {
             file.createNewFile();
             // arbitrary start before the current date
