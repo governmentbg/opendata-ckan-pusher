@@ -1,0 +1,1 @@
+%cd%\jre1.8.0_91\bin\java -jar opendata-ckan-pusher.jar %cd%\pusher.yml

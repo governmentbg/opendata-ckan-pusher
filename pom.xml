@@ -90,6 +90,11 @@
                             <goal>single</goal>
                         </goals>
                         <configuration>
+                            <archive>
+                                <manifest>
+                                    <mainClass>bg.government.opendatapusher.Pusher</mainClass>
+                                </manifest>
+                            </archive>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
                             </descriptorRefs>
@@ -121,6 +126,7 @@
                                 <copy file="${project.build.directory}/opendata-ckan-pusher.jar" todir="${installer.dir}" />
                                 <copy file="${project.basedir}/install.bat" todir="${installer.dir}" />
                                 <copy file="${project.basedir}/uninstall.bat" todir="${installer.dir}" />
+                                <copy file="${project.basedir}/upload-test.bat" todir="${installer.dir}" />
                                 <copy file="${project.basedir}/config/pusher.yml" todir="${installer.dir}" />
                                 <copy file="${project.basedir}/LICENSE" todir="${installer.dir}" />
                             </target>
