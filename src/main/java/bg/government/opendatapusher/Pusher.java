@@ -124,8 +124,8 @@ public class Pusher implements Runnable {
                     File file = getOrCreateFile(config.getTitle());
                     long lastRunMillis = Long.parseLong(Files.readFirstLine(file, Charsets.UTF_8));
                     LocalDateTime lastRun = LocalDateTime.ofInstant(Instant.ofEpochMilli(lastRunMillis), ZoneId.systemDefault());
-                    LocalDateTime lastModified = LocalDateTime.ofInstant(Instant.ofEpochMilli(file.lastModified()), ZoneId.systemDefault());
-                    if (lastRun.isBefore(LocalDateTime.now().minusDays(config.getDays())) || lastRun.isBefore(lastModified)) {
+                    LocalDateTime lastConfigModified = LocalDateTime.ofInstant(Instant.ofEpochMilli(new File(path).lastModified()), ZoneId.systemDefault());
+                    if (lastRun.isBefore(LocalDateTime.now().minusDays(config.getDays())) || lastRun.isBefore(lastConfigModified)) {
                         String resultPath = null;
                         switch (config.getSourceType()) {
                         case XLS:
@@ -143,7 +143,7 @@ public class Pusher implements Runnable {
                         pushDataset(resultPath, config.getResourceKey());
                         storeSuccessfulRun(file);
                     } else {
-                        logger.info("Skipping run; last run was too recently: " + lastRun + ". File last modified: " + lastModified);
+                        logger.info("Skipping run; last run was too recently: " + lastRun + ". File last modified: " + lastConfigModified);
                     }
                 } catch (IOException ex) {
                     logger.log(Level.SEVERE, "Problem with resource " + config.getResourceKey(), ex);
