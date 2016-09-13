@@ -9,6 +9,10 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -196,8 +200,27 @@ public class Pusher implements Runnable {
         return file;
     }
 
-    public String sqlToCsv(String connectionString, String query, String string) {
-        return "";
+    public String sqlToCsv(String connectionString, String query, String dir) {
+        try {
+            Connection conn = DriverManager.getConnection(connectionString);
+            ResultSet rs = conn.createStatement().executeQuery(query);
+            String destination = dir + "/sqlexport.csv";
+            try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+                    destination), Charsets.UTF_8.name()))) {
+                while (rs.next()) {
+                    String separator = "";
+                    for (int i = 0; i < rs.getMetaData().getColumnCount(); i ++) {
+                        writer.write(separator + "\"" + rs.getObject(i).toString() + "\"");
+                        separator = ",";
+                    }
+                    // Append new line at the end of each row
+                    writer.write(System.lineSeparator());
+                }
+            }
+            return destination;
+        } catch (IOException | SQLException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     public String xlsToCsv(String sourcePath) throws IOException {
