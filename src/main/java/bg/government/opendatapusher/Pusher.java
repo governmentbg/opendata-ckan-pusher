@@ -45,7 +45,9 @@ import bg.government.opendatapusher.PushConfig.ConfigRoot;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
@@ -59,7 +61,10 @@ public class Pusher implements Runnable {
     
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     
-    private static final String UPDATE_OPERATION = "/api/3/action/resource_update";
+    private static final String PREFIX = "/api/3/action/";
+    private static final String UPDATE_OPERATION = PREFIX + "resource_update";
+    private static final String CREATE_OPERATION = PREFIX + "resource_create";
+    private static final String RESOURCE_SHOW_OPERATION = PREFIX + "resource_show";
 
     private static final String DEFAULT_API_KEY = "xxxxxx";
     
@@ -69,6 +74,8 @@ public class Pusher implements Runnable {
     private String rootUrl;
     
     private RestTemplate restTemplate = new RestTemplate();
+    
+    private ObjectMapper objectMapper = new ObjectMapper();
     
     private static ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
     
@@ -144,7 +151,7 @@ public class Pusher implements Runnable {
                         }
                         logger.info("Parsing complete; pushing to opendata portal");
                         
-                        pushDataset(resultPath, config.getResourceKey());
+                        pushDataset(resultPath, config.getResourceKey(), config.isAppend());
                         storeSuccessfulRun(file);
                     } else {
                         logger.info("Skipping run; last run was too recently: " + lastRun + ". File last modified: " + lastConfigModified);
@@ -163,20 +170,44 @@ public class Pusher implements Runnable {
                 file, Charsets.UTF_8);
     }
 
-    private void pushDataset(String csvPath, String resourceKey) throws IOException {
+    private void pushDataset(String csvPath, String resourceKey, boolean append) throws IOException {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", apiKey);
         headers.setContentType(MediaType.MULTIPART_FORM_DATA);
         
-        MultiValueMap<String, Object> map = new LinkedMultiValueMap<String, Object>();
-        map.add("id", resourceKey);
-        map.add("upload", new FileSystemResource(csvPath));
+        HttpHeaders jsonHeaders = new HttpHeaders();
+        jsonHeaders.set("Authorization", apiKey);
+        jsonHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
         
-        HttpEntity<?> request = new  HttpEntity<>(map, headers);
+        HttpEntity<?> request = new  HttpEntity<>(headers);
         
         try {
+            if (append) {
+                String url = rootUrl + RESOURCE_SHOW_OPERATION;
+                String result = restTemplate.exchange(new URI(url), HttpMethod.GET, request, String.class).getBody();
+                JsonNode node = objectMapper.readTree(result).get("result"); 
+                String packageId = node.get("package_id").asText();
+                String name = node.get("name") + formatter.format(LocalDateTime.now());
+                
+                ObjectNode requestNode = objectMapper.createObjectNode();
+                requestNode.put("package_id", packageId);
+                requestNode.put("name", name);
+                requestNode.put("url", "dummy");
+                HttpEntity<?> createRequest = new  HttpEntity<>(requestNode, jsonHeaders);
+                
+                url = rootUrl + CREATE_OPERATION;
+                String createResult = restTemplate.exchange(new URI(url), HttpMethod.GET, createRequest, String.class).getBody();
+                resourceKey = objectMapper.readTree(createResult).get("result").get("id").asText();
+            }
+            
+            MultiValueMap<String, Object> map = new LinkedMultiValueMap<String, Object>();
+            map.add("id", resourceKey);
+            map.add("upload", new FileSystemResource(csvPath));
+            
+            HttpEntity<?> updateRequest = new  HttpEntity<>(map, headers);
+            
             String url = rootUrl + UPDATE_OPERATION;
-            String result = restTemplate.exchange(new URI(url), HttpMethod.POST, request, String.class).getBody();
+            String result = restTemplate.exchange(new URI(url), HttpMethod.POST, updateRequest, String.class).getBody();
             logger.info("Result: " + result);
         } catch (HttpServerErrorException e) {
             logger.log(Level.SEVERE, e.getResponseBodyAsString(), e);
@@ -232,13 +263,14 @@ public class Pusher implements Runnable {
                 // Get first sheet from the workbook
                 Sheet sheet = wBook.getSheetAt(0);
                 for (Row row : sheet) {
-
+                    boolean hasContent = false;
                     String separator = "";
                     // For each row, iterate through each column
                     for (Cell cell : row) {
                         switch (cell.getCellType()) {
                         case Cell.CELL_TYPE_BOOLEAN:
                             writer.write(separator + "\"" + cell.getBooleanCellValue() + "\"");
+                            hasContent = true;
                             break;
                         case Cell.CELL_TYPE_NUMERIC:
                         case Cell.CELL_TYPE_FORMULA:
@@ -254,9 +286,11 @@ public class Pusher implements Runnable {
                                     writer.write(separator + "\"" + cell.getNumericCellValue() + "\"");
                                 }
                             }
+                            hasContent = true;
                             break;
                         case Cell.CELL_TYPE_STRING:
                             writer.write(separator + "\"" + cell.getStringCellValue().replace("\"", "\"\"").trim() + "\"");
+                            hasContent = true;
                             break;
 
                         case Cell.CELL_TYPE_BLANK:
@@ -264,12 +298,15 @@ public class Pusher implements Runnable {
                             break;
                         default:
                             writer.write(separator + "\"" + cell.getStringCellValue().replace("\"", "\"\"").trim() + "\"");
+                            hasContent = true;
 
                         }
                         separator = ",";
                     }
                     // Append new line at the end of each row
-                    writer.write(System.lineSeparator());
+                    if (hasContent) {
+                        writer.write(System.lineSeparator());
+                    }
                 }
             }
         }

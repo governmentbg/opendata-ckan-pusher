@@ -11,6 +11,7 @@ public class PushConfig {
     private String connectionString;
     private int days;
     private String resourceKey;
+    private boolean append;
     
     public SourceType getSourceType() {
         return sourceType;
@@ -55,6 +56,14 @@ public class PushConfig {
     public void setResourceKey(String resourceKey) {
         this.resourceKey = resourceKey;
     }
+
+    public boolean isAppend() {
+        return append;
+    }
+    public void setAppend(boolean append) {
+        this.append = append;
+    }
+
 
     public static class ConfigRoot {
         private List<PushConfig> configs;
