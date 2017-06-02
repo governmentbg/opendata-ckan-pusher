@@ -3,7 +3,7 @@
 # Инсталация
 
 1. [Свалете и инсталирайте Notepad++](https://notepad-plus-plus.org/repository/6.x/6.9.2/npp.6.9.2.Installer.exe)
-2. [Свалете инсталатора на инструмента за автоматично качване от тук](https://github.com/governmentbg/opendata-ckan-pusher/releases/download/0.2/opendata-pusher.exe)
+2. [Свалете инсталатора на инструмента за автоматично качване от тук](https://github.com/governmentbg/opendata-ckan-pusher/releases/download/0.3/opendata-pusher.exe)
 3. Стартирайте инсталатора (двоен клик с мишката).
 4. Натиснете "Extract".  
 ![](installer.png)
