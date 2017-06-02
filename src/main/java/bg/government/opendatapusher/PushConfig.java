@@ -12,6 +12,8 @@ public class PushConfig {
     private int days;
     private String resourceKey;
     private boolean append;
+    private boolean useBom;
+    private boolean pushAfterConfigChange;
     
     public SourceType getSourceType() {
         return sourceType;
@@ -64,6 +66,19 @@ public class PushConfig {
         this.append = append;
     }
 
+    public boolean isUseBom() {
+        return useBom;
+    }
+    public void setUseBom(boolean useBom) {
+        this.useBom = useBom;
+    }
+
+    public boolean isPushAfterConfigChange() {
+        return pushAfterConfigChange;
+    }
+    public void setPushAfterConfigChange(boolean pushAfterConfigChange) {
+        this.pushAfterConfigChange = pushAfterConfigChange;
+    }
 
     public static class ConfigRoot {
         private List<PushConfig> configs;

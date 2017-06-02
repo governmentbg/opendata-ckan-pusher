@@ -136,14 +136,15 @@ public class Pusher implements Runnable {
                     long lastRunMillis = Long.parseLong(Files.readFirstLine(file, Charsets.UTF_8));
                     LocalDateTime lastRun = LocalDateTime.ofInstant(Instant.ofEpochMilli(lastRunMillis), ZoneId.systemDefault());
                     LocalDateTime lastConfigModified = LocalDateTime.ofInstant(Instant.ofEpochMilli(new File(path).lastModified()), ZoneId.systemDefault());
-                    if (lastRun.isBefore(LocalDateTime.now().minusDays(config.getDays())) || lastRun.isBefore(lastConfigModified)) {
+                    if (lastRun.isBefore(LocalDateTime.now().minusDays(config.getDays()))
+                            || (config.isPushAfterConfigChange() && lastRun.isBefore(lastConfigModified))) {
                         String resultPath = null;
                         switch (config.getSourceType()) {
                         case XLS:
-                            resultPath = xlsToCsv(config.getPath());
+                            resultPath = xlsToCsv(config.getPath(), config.isUseBom());
                             break;
                         case SQL:
-                            resultPath = sqlToCsv(config.getConnectionString(), config.getQuery(), config.getPath());
+                            resultPath = sqlToCsv(config.getConnectionString(), config.getQuery(), config.getPath(), config.isUseBom());
                             break;
                         case RAW:
                             resultPath = config.getPath();
@@ -231,13 +232,16 @@ public class Pusher implements Runnable {
         return file;
     }
 
-    public String sqlToCsv(String connectionString, String query, String dir) {
+    public String sqlToCsv(String connectionString, String query, String dir, boolean useBom) {
         try {
             Connection conn = DriverManager.getConnection(connectionString);
             ResultSet rs = conn.createStatement().executeQuery(query);
             String destination = dir + "/sqlexport.csv";
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
                     destination), Charsets.UTF_8.name()))) {
+                if (useBom) {
+                    writer.write('\ufeff');
+                }
                 while (rs.next()) {
                     String separator = "";
                     for (int i = 0; i < rs.getMetaData().getColumnCount(); i ++) {
@@ -254,10 +258,13 @@ public class Pusher implements Runnable {
         }
     }
 
-    public String xlsToCsv(String sourcePath) throws IOException {
+    public String xlsToCsv(String sourcePath, boolean useBom) throws IOException {
         String destination = sourcePath + ".csv";
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
                 destination), Charsets.UTF_8.name()))) {
+            if (useBom) {
+                writer.write('\ufeff');
+            }
             // Get the workbook object for XLSX file
             try (Workbook wBook = loadWorkbook(sourcePath)) {
                 // Get first sheet from the workbook

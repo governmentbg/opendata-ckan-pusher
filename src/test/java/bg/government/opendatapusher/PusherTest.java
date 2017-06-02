@@ -39,7 +39,7 @@ public class PusherTest {
         PushConfig conf = new PushConfig();
         conf.setPath(path.toAbsolutePath().toString());
         Pusher pusher = new Pusher("");
-        String resultPath = pusher.xlsToCsv(conf.getPath());
+        String resultPath = pusher.xlsToCsv(conf.getPath(), false);
         return resultPath;
     }
     
