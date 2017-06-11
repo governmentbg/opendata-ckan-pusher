@@ -7,3 +7,4 @@ configs:
       days: 2
       resourceKey: 383ab793-5cc6-4eb8-8ceb-b2610921dc6e
       append: false
+      pushAfterConfigChange: false
